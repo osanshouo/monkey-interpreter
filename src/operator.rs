@@ -1,7 +1,7 @@
 use std::fmt;
 
 /// 前置演算子
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Prefix {
     Bang,
     Minus,
@@ -15,8 +15,8 @@ impl fmt::Display for Prefix {
     }
 }
 
-/// 後置演算子
-#[derive(Debug, Clone)]
+/// 中置演算子
+#[derive(Debug, Clone, Copy)]
 pub enum Infix {
     Plus,
     Minus,
@@ -52,4 +52,16 @@ pub enum Precedence {
     Product,
     Prefix,
     Call,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::operator;
+
+    #[test]
+    fn test_operator_precedence() {
+        assert_eq!( operator::Precedence::Product, operator::Precedence::Product );
+        assert!( operator::Precedence::Lowest < operator::Precedence::Equals );
+        assert!( operator::Precedence::Call >= operator::Precedence::Prefix );
+    }
 }

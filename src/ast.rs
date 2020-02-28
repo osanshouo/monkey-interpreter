@@ -26,7 +26,7 @@ impl fmt::Display for Statement {
 /// AST のルートノード
 #[derive(Debug, Clone)]
 pub struct Program {
-    statements: Vec<Statement>,
+    pub(crate) statements: Vec<Statement>,
 }
 impl Program {
     pub fn new() -> Self { Self { statements: Vec::new() } }
