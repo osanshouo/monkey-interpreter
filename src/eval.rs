@@ -6,13 +6,28 @@ use crate::{
     error::MonkeyError,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Environment {
-    map: HashMap<String, Object>,
+    store: HashMap<String, Object>,
+    outer: Option<Box<Environment>>,
 }
 impl Environment {
     pub fn new() -> Self {
-        Environment { map: HashMap::new() }
+        Environment { store: HashMap::new(), outer: None }
+    }
+
+    fn virtual_environment(&self) -> Environment {
+        Environment { store: HashMap::new(), outer: Some(Box::new(self.clone())) }
+    }
+
+    pub fn get(&self, key: &str) -> Option<Object> {
+        match self.store.get(key) {
+            Some(obj) => Some(obj.clone()),
+            None => match &self.outer {
+                Some(env) => env.get(key),
+                None      => None,
+            },
+        }
     }
 
     pub fn eval(&mut self, program: &ast::Program) -> Result<Object, MonkeyError> {
@@ -39,7 +54,7 @@ impl Environment {
             ast::Statement::Let{ident, value} => {
                 if let ast::Expression::Ident(ident) = ident {
                     let value = self.eval_expression(value)?;
-                    self.map.insert(ident.to_owned(), value);
+                    self.store.insert(ident.to_owned(), value);
                     Ok(Object::Null)
                 } else {
                     unreachable!()
@@ -61,6 +76,13 @@ impl Environment {
         Ok(result)
     }
     
+    fn eval_expressions(&mut self, exprs: &[ast::Expression]) -> Result<Vec<Object>, MonkeyError> {
+        let mut result = Vec::new();
+        for expr in exprs.iter() {
+            result.push(self.eval_expression(expr)?);
+        }
+        Ok(result)
+    }
 
     fn eval_expression(&mut self, expr: &ast::Expression) -> Result<Object, MonkeyError> {
         match expr {
@@ -85,11 +107,19 @@ impl Environment {
                     }
                 }
             },
-            ast::Expression::Ident(ident) => match self.map.get(ident) {
+            ast::Expression::Ident(ident) => match self.store.get(ident) {
                 Some(value) => Ok(value.clone()),
                 None         => Err(MonkeyError::IdentifierNotFound(ident.to_owned())),
             },
-            _ => unimplemented!(),
+            ast::Expression::Function{parameters, body} => {
+                Ok(Object::Function{parameters: parameters.clone(), body: *body.clone(), env: self.clone()})
+            },
+            ast::Expression::Call{function, arguments} => {
+                let function = self.eval_expression(function)?;
+                let args = self.eval_expressions(arguments)?;
+                
+                apply_function(function, args)
+            },
         }
     }
 }
@@ -139,10 +169,27 @@ fn eval_infix_expression(op: &operator::Infix, left: Object, right: Object) -> R
     }
 }
 
+fn apply_function(function: Object, args: Vec<Object>) -> Result<Object, MonkeyError> {
+    if let Object::Function{parameters, body, env} = function {
+        let mut env = env.virtual_environment();
+        for (ident, arg) in parameters.iter().zip(args.iter()) {
+            if let ast::Expression::Ident(ident) = ident {
+                env.store.insert(ident.to_owned(), arg.clone());
+            } 
+        }
+        match env.eval_statement(&body)? {
+            Object::ReturnValue(obj) => Ok(*obj),
+            obj => Ok(obj),
+        }
+    } else {
+        unreachable!()
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use crate::{
+        ast,
         lexer::Lexer,
         parser::Parser,
         object::Object,
@@ -181,5 +228,26 @@ mod tests {
         let program = p.parse_program().expect("Failed to parse!");
 
         env.eval(&program).expect("Failed to evaluate!")
+    }
+
+    #[test]
+    fn eval_function() {
+        let input = "fn(x) { x + 2; };";
+        let obj = eval(input);
+
+        if let Object::Function{parameters, body, env} = obj {
+            assert_eq!(env, Environment::new());
+            if let ast::Expression::Ident(ident) = &parameters[0] {
+                assert_eq!( ident, "x" );
+                if let ast::Statement::Block(blocks) = body {
+                    assert_eq!(format!("{}", blocks[0]), "(x+2);");
+                }
+            } else {
+                panic!("");
+            }
+        } else {
+            panic!("");
+        }
+
     }
 }

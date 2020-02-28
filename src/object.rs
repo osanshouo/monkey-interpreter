@@ -1,4 +1,5 @@
 use std::fmt;
+use crate::{ast, eval::Environment};
 
 #[derive(Debug, Clone)]
 pub enum ObjectType {
@@ -8,12 +9,13 @@ pub enum ObjectType {
 }
 
 /// オブジェクト
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Object {
     Integer(i32),
     Bool(bool),
     Null,
     ReturnValue(Box<Object>),
+    Function{parameters: Vec<ast::Expression>, body: ast::Statement, env: Environment},
 }
 impl Object {
     pub fn is_truthy(&self) -> bool {
@@ -24,6 +26,20 @@ impl Object {
         }
     }
 }
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Object::Integer(x), Object::Integer(y)) => x == y,
+            (Object::Bool(x), Object::Bool(y)) => x == y,
+            (Object::Null, Object::Null) => true,
+            // (Object::Function{..}, Object::Function{..}) => {
+            //     format!("{}", self) == format!("{}", other)
+            // },
+            _ => false,
+        }
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -31,6 +47,12 @@ impl fmt::Display for Object {
             Object::Bool(value)        => write!(f, "{}", value),
             Object::Null               => write!(f, "null"),
             Object::ReturnValue(value) => write!(f, "{}", value),
+            Object::Function{parameters, body, ..} => {
+                write!(f, "fn({}){{{}}}", 
+                    parameters.iter().map(|expr| format!("{}", expr)).collect::<Vec<_>>().join(","), 
+                    body
+                )
+            },
         }
     }
 }
