@@ -5,4 +5,5 @@ pub mod operator;
 pub mod parser;
 pub mod object;
 pub mod eval;
+pub mod repl;
 pub mod error;
