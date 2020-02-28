@@ -70,8 +70,8 @@ impl fmt::Display for Expression {
             Expression::Infix{op, left, right} => write!(f, "({}{}{})", left, op, right),
             Expression::If{condition, consequence, alternative} => {
                 match alternative {
-                    Some(alt) => write!(f, "if {} {{{}}} else {{{}}}", condition, consequence, alt),
-                    None => write!(f, "if {} {{{}}}", condition, consequence),
+                    Some(alt) => write!(f, "if({}){{{}}}else{{{}}}", condition, consequence, alt),
+                    None => write!(f, "if({}){{{}}}", condition, consequence),
                 }
             },
             Expression::Function{parameters, body} => {

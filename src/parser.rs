@@ -118,9 +118,7 @@ impl<'a> Parser<'a> {
         // 戻り値を取得
         let value = self.parse_expression(operator::Precedence::Lowest)?;
 
-        while !self.peek_token_is(Token::Semicolon) {
-            self.next_token();
-        }
+        self.expect_peek(Token::Semicolon)?;
 
         Ok(ast::Statement::Return(value))
     }
@@ -182,14 +180,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_if_expression(&mut self) -> Result<ast::Expression, MonkeyError> {
-        // Token::If を飛ばす
-        self.next_token();
-
         self.expect_peek(Token::LParen)?;
         let condition = Box::new(
             self.parse_expression(operator::Precedence::Lowest)?
         );
-        self.expect_peek(Token::RParen)?;
+        if !self.cur_token_is(Token::RParen) {
+            return Err(MonkeyError::UnexpectedToken{expected: Token::RParen, got: self.cur_token.clone()});
+        };
 
         self.expect_peek(Token::LBrace)?;
         let consequence = self.parse_block_statement()?;
@@ -461,8 +458,8 @@ return 993322;"#;
             ("(5 + 5 ) * 10;", "((5+5)*10);"),
             ("true;", "true;"),
             ("let x = false;", "let x = false;"),
-            ("if x { 2 + 3 }", "if x {(2+3);};"),
-            ("if x { 2 + 3; 4/2; } else { 5; }", "if x {(2+3);(4/2);} else {5;};"),
+            ("if (x) { 2 + 3 }", "if(x){(2+3);};"),
+            ("if (x) { 2 + 3; 4/2; } else { 5; }", "if(x){(2+3);(4/2);}else{5;};"),
             ("fn(){ 5; }", "fn(){5;};"),
             ("fn(x, y) { x + y; }", "fn(x,y){(x+y);};"),
             ("add(1, 2*3);", "add(1,(2*3));"),
