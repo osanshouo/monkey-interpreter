@@ -1,0 +1,7 @@
+[package]
+name = "monkey-interpreter"
+version = "0.1.0"
+authors = ["osanshouo <53166653+osanshouo@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
