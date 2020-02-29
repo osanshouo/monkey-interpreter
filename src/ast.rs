@@ -1,5 +1,5 @@
 use std::fmt;
-use crate::{token::Token, operator};
+use crate::operator;
 
 /// 文 (statement) を表す enum.
 #[derive(Debug, Clone)]
@@ -51,14 +51,6 @@ pub enum Expression {
     If       {condition: Box<Expression>, consequence: Box<Statement>, alternative: Option<Box<Statement>>},
     Function {parameters: Vec<Expression>, body: Box<Statement>},
     Call     {function: Box<Expression>, arguments: Vec<Expression>},
-}
-impl Expression {
-    pub fn new_ident(token: Token, value: String) -> Self {
-        Expression::Ident(value)
-    }
-    pub fn new_integer_literal(token: Token, value: i32) -> Self {
-        Expression::Integer(value)
-    }
 }
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
