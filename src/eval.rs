@@ -115,9 +115,16 @@ impl Evaluator {
                 Ok(Object::Function{parameters: parameters.clone(), body: *body.clone(), env: Environment::virtual_environment(env)})
             },
             ast::Expression::Call{function, arguments} => {
-                let function = self.eval_expression(function)?;
                 let args = self.eval_expressions(arguments)?;
                 
+                if let ast::Expression::Ident(func) = &**function {
+                    if func == "puts" {
+                        println!("{}", args.iter().map(|arg| format!("{} ", arg)).collect::<String>());
+                        return Ok(Object::Null);
+                    }
+                }
+
+                let function = self.eval_expression(function)?;
                 apply_function(function, args)
             },
         }
