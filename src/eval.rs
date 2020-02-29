@@ -84,6 +84,7 @@ impl Evaluator {
 
     fn eval_expression(&mut self, expr: &ast::Expression) -> Result<Object, MonkeyError> {
         match expr {
+            ast::Expression::String(s)      => Ok(Object::String(s.to_owned())),
             ast::Expression::Integer(value) => Ok(Object::Integer(*value)),
             ast::Expression::Bool(value)    => Ok(Object::Bool(*value)),
             ast::Expression::Prefix{op, right} => {
@@ -217,6 +218,7 @@ mod tests {
                 Object::Integer(10)),
             ("let x = 5;", Object::Null),
             ("let x = 5; x*2;", Object::Integer(10)),
+            ("\"foo bar\"", Object::String("foo bar".to_owned())),
         ];
 
         for (input, answer) in probrem.iter() {

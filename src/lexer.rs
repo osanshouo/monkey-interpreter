@@ -60,6 +60,17 @@ impl<'a> Lexer<'a> {
         Token::Integer(number.parse().unwrap())
     }
 
+    /// 文字列を読み込みトークンに変換する.
+    fn read_string(&mut self) -> Token {
+        self.read_char();
+
+        let mut s = String::new();
+        while self.cur != '"' && self.cur != '\u{0}' {
+            s.push(self.read_char());
+        }
+        Token::String(s.to_owned())
+    }
+
     /// 次のトークンを生成する.
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
@@ -93,6 +104,7 @@ impl<'a> Lexer<'a> {
             '/' => Token::Slash,
             '<' => Token::LT, 
             '>' => Token::GT, 
+            '"' => self.read_string(),
             '\u{0}' => Token::EOF,
             c => { 
                 if is_letter(c) {
@@ -150,6 +162,7 @@ if (5 < 10) {
 } else {
     return false;
 }
+"foo bar";
 10 == 10;
 10 != 9;"#;
         let answers = vec![
@@ -217,6 +230,8 @@ if (5 < 10) {
             Token::False, 
             Token::Semicolon,
             Token::RBrace, 
+            Token::String("foo bar".to_owned()),
+            Token::Semicolon,
             Token::Integer(10),
             Token::Eq, 
             Token::Integer(10),

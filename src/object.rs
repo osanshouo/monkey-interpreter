@@ -11,6 +11,7 @@ pub enum ObjectType {
 /// オブジェクト
 #[derive(Debug, Clone)]
 pub enum Object {
+    String(String),
     Integer(i32),
     Bool(bool),
     Null,
@@ -29,6 +30,7 @@ impl Object {
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (Object::String(x), Object::String(y)) => x == y,
             (Object::Integer(x), Object::Integer(y)) => x == y,
             (Object::Bool(x), Object::Bool(y)) => x == y,
             (Object::Null, Object::Null) => true,
@@ -43,6 +45,7 @@ impl PartialEq for Object {
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Object::String(s)          => write!(f, "{}", s),
             Object::Integer(value)     => write!(f, "{}", value),
             Object::Bool(value)        => write!(f, "{}", value),
             Object::Null               => write!(f, "null"),

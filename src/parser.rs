@@ -140,6 +140,7 @@ impl<'a> Parser<'a> {
         // 単独の式または前置演算子
         let mut left = match &self.cur_token {
             Token::Ident(ident)   => ast::Expression::Ident(ident.to_owned()),
+            Token::String(s)      => ast::Expression::String(s.to_owned()),
             Token::Integer(value) => ast::Expression::Integer(*value),
             Token::True       => ast::Expression::Bool(true),
             Token::False      => ast::Expression::Bool(false),

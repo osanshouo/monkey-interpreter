@@ -44,6 +44,7 @@ impl fmt::Display for Program {
 #[derive(Debug, Clone)]
 pub enum Expression {
     Ident(String),
+    String(String),
     Integer(i32),
     Bool(bool),
     Prefix {op: operator::Prefix, right: Box<Expression>},
@@ -56,6 +57,7 @@ impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Expression::Ident(value) => write!(f, "{}", &value),
+            Expression::String(value) => write!(f, "{}", &value),
             Expression::Integer(value) => write!(f, "{}", value),
             Expression::Bool(value) => write!(f, "{}", value),
             Expression::Prefix{op, right} => write!(f, "({}{})", op, right),

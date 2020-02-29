@@ -29,6 +29,7 @@ pub enum Token {
     Return,
     Ident(String),
     Integer(i32),
+    String(String),
 }
 
 impl Token {
