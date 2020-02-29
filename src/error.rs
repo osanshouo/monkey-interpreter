@@ -12,4 +12,5 @@ pub enum MonkeyError {
     TypeMismatch(ObjectType, operator::Infix, ObjectType),
     UnknownOperator(ObjectType, operator::Infix, ObjectType),
     IdentifierNotFound(String),
+    IncorrectNumberOfArgs{expected: usize, got: usize},
 }

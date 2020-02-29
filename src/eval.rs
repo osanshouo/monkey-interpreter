@@ -1,33 +1,31 @@
-use std::collections::HashMap;
+use std::{rc::Rc, cell::RefCell};
 use crate::{
     ast,
     operator,
     object::{Object, ObjectType},
+    env::Environment,
     error::MonkeyError,
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Environment {
-    store: HashMap<String, Object>,
-    outer: Option<Box<Environment>>,
+pub struct Evaluator {
+    env: Rc<RefCell<Environment>>,
 }
-impl Environment {
+impl Evaluator {
     pub fn new() -> Self {
-        Environment { store: HashMap::new(), outer: None }
+        Evaluator { env: Rc::new(RefCell::new(Environment::new())) }
     }
 
-    fn virtual_environment(&self) -> Environment {
-        Environment { store: HashMap::new(), outer: Some(Box::new(self.clone())) }
+    pub fn from(env: Environment) -> Self {
+        Evaluator { env: Rc::new(RefCell::new(env)) }
     }
 
     pub fn get(&self, key: &str) -> Option<Object> {
-        match self.store.get(key) {
-            Some(obj) => Some(obj.clone()),
-            None => match &self.outer {
-                Some(env) => env.get(key),
-                None      => None,
-            },
-        }
+        self.env.borrow().get(key)
+    }
+
+    pub fn set(&mut self, key: String, value: Object) {
+        self.env.borrow_mut().set(key, value);
     }
 
     pub fn eval(&mut self, program: &ast::Program) -> Result<Object, MonkeyError> {
@@ -54,7 +52,7 @@ impl Environment {
             ast::Statement::Let{ident, value} => {
                 if let ast::Expression::Ident(ident) = ident {
                     let value = self.eval_expression(value)?;
-                    self.store.insert(ident.to_owned(), value);
+                    self.set(ident.to_owned(), value);
                     Ok(Object::Null)
                 } else {
                     unreachable!()
@@ -107,12 +105,13 @@ impl Environment {
                     }
                 }
             },
-            ast::Expression::Ident(ident) => match self.store.get(ident) {
+            ast::Expression::Ident(ident) => match self.get(ident) {
                 Some(value) => Ok(value.clone()),
                 None         => Err(MonkeyError::IdentifierNotFound(ident.to_owned())),
             },
             ast::Expression::Function{parameters, body} => {
-                Ok(Object::Function{parameters: parameters.clone(), body: *body.clone(), env: self.clone()})
+                let env = Rc::clone(&self.env);
+                Ok(Object::Function{parameters: parameters.clone(), body: *body.clone(), env: Environment::virtual_environment(env)})
             },
             ast::Expression::Call{function, arguments} => {
                 let function = self.eval_expression(function)?;
@@ -171,10 +170,15 @@ fn eval_infix_expression(op: &operator::Infix, left: Object, right: Object) -> R
 
 fn apply_function(function: Object, args: Vec<Object>) -> Result<Object, MonkeyError> {
     if let Object::Function{parameters, body, env} = function {
-        let mut env = env.virtual_environment();
+        if parameters.len() != args.len() {
+            // 関数の引数の数が与えられた expr の数に一致しなかったらエラーを返して終了.
+            return Err(MonkeyError::IncorrectNumberOfArgs{ expected: parameters.len(), got: args.len() });
+        }
+
+        let mut env = Evaluator::from(env);
         for (ident, arg) in parameters.iter().zip(args.iter()) {
             if let ast::Expression::Ident(ident) = ident {
-                env.store.insert(ident.to_owned(), arg.clone());
+                env.set(ident.to_owned(), arg.clone());
             } 
         }
         match env.eval_statement(&body)? {
@@ -193,7 +197,7 @@ mod tests {
         lexer::Lexer,
         parser::Parser,
         object::Object,
-        eval::Environment,
+        eval::Evaluator,
     };
 
     #[test]
@@ -222,7 +226,7 @@ mod tests {
     }
 
     fn eval(input: &str) -> Object {
-        let mut env = Environment::new();
+        let mut env = Evaluator::new();
         let l = Lexer::new(input);
         let mut p = Parser::new(l);
         let program = p.parse_program().expect("Failed to parse!");
@@ -235,8 +239,7 @@ mod tests {
         let input = "fn(x) { x + 2; };";
         let obj = eval(input);
 
-        if let Object::Function{parameters, body, env} = obj {
-            assert_eq!(env, Environment::new());
+        if let Object::Function{parameters, body, ..} = obj {
             if let ast::Expression::Ident(ident) = &parameters[0] {
                 assert_eq!( ident, "x" );
                 if let ast::Statement::Block(blocks) = body {
@@ -249,5 +252,13 @@ mod tests {
             panic!("");
         }
 
+        let input = "let f = fn(x) { x + 2; }; let x = 3; f(0);";
+        assert_eq!( eval(input), Object::Integer(2));
+
+        let input = "let f = fn(x) { x + 2; }; let x = 3; f(0); x;";
+        assert_eq!( eval(input), Object::Integer(3));
+
+        let input = "let a = 2; let f = fn(x) { x + a; }; f(0)";
+        assert_eq!( eval(input), Object::Integer(2));
     }
 }

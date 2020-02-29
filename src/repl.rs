@@ -2,13 +2,13 @@ use std::io::{self, BufRead};
 use crate::{
     lexer::Lexer,
     parser::Parser,
-    eval::Environment,
+    eval::Evaluator,
 };
 
 const PROMPT: &str = ">> ";
 
 pub fn start() -> Result<(), io::Error> {
-    let mut env = Environment::new();
+    let mut env = Evaluator::new();
 
     eprint!("{}", PROMPT);
     for line in io::stdin().lock().lines() {

@@ -1,5 +1,5 @@
 use std::fmt;
-use crate::{ast, eval::Environment};
+use crate::{ast, env::Environment};
 
 #[derive(Debug, Clone)]
 pub enum ObjectType {
